@@ -1,0 +1,8 @@
+{
+  "node_modules/opnet/browser/index.js -> ./worker_threads-browser.js": {
+    "id": "node_modules/opnet/browser/index.js -> ./worker_threads-browser.js",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_opnet_browser_worker_threads-browser_js.js"
+    ]
+  }
+}

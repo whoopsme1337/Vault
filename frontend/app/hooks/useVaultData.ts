@@ -10,6 +10,7 @@ import {
   getUserCollateral,
   getTokenBalance,
   getPublicKey,
+  setCachedPublicKey,
   TOKEN_ADDRESSES,
   formatAmount,
 } from '../lib/opnet';
@@ -35,6 +36,7 @@ export function useVaultData(userAddress: string | null) {
   const [tokens, setTokens] = useState<TokenInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pubkeyRequired, setPubkeyRequired] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!userAddress) return;
@@ -45,9 +47,13 @@ export function useVaultData(userAddress: string | null) {
       let pubKey: Address | null = null;
       try {
         pubKey = await getPublicKey(userAddress);
-      } catch {
-        // If public key resolution fails, vault/lending user data will show zeros
-        console.warn('Could not resolve public key — vault/lending data unavailable');
+        setPubkeyRequired(false);
+      } catch (e) {
+        if (e instanceof Error && e.message === 'PUBKEY_REQUIRED') {
+          setPubkeyRequired(true);
+        } else {
+          console.warn('Could not resolve public key — vault/lending data unavailable');
+        }
       }
 
       const entries = Object.entries(TOKEN_ADDRESSES) as [string, string][];
@@ -84,11 +90,21 @@ export function useVaultData(userAddress: string | null) {
     }
   }, [userAddress]);
 
+  const submitPublicKey = useCallback((pubKeyHex: string) => {
+    try {
+      setCachedPublicKey(pubKeyHex);
+      setPubkeyRequired(false);
+      fetchData();
+    } catch {
+      setError('Invalid public key format. Expected 0x02... or 0x03...');
+    }
+  }, [fetchData]);
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 15_000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  return { tokens, loading, error, refresh: fetchData };
+  return { tokens, loading, error, refresh: fetchData, pubkeyRequired, submitPublicKey };
 }

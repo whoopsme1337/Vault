@@ -1,6 +1,6 @@
 'use client';
 import { JSONRpcProvider, getContract } from 'opnet';
-import { testnet } from '@btc-vision/bitcoin';
+import { networks } from '@btc-vision/bitcoin';
 
 const PILL = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
 const MOTO = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;

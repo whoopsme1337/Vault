@@ -71,24 +71,24 @@ export function formatAmount(raw: bigint, decimals = 8): string {
 // ── ABIs ──────────────────────────────────────────────────────────────────────
 
 const VAULT_ABI: BitcoinInterfaceAbi = [
-  { name: 'deposit',         type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'withdraw',        type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'shares', type: ABIDataTypes.UINT256 }] },
-  { name: 'getUserShares',   type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
-  { name: 'getExchangeRate', type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
-  { name: 'getTotalAssets',  type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
-  { name: 'getTotalShares',  type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
+  { name: 'deposit',         type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [] },
+  { name: 'withdraw',        type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'shares', type: ABIDataTypes.UINT256 }], outputs: [] },
+  { name: 'getUserShares',   type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }], outputs: [{ name: 'shares',       type: ABIDataTypes.UINT256 }] },
+  { name: 'getExchangeRate', type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }],                                                  outputs: [{ name: 'exchangeRate', type: ABIDataTypes.UINT256 }] },
+  { name: 'getTotalAssets',  type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }],                                                  outputs: [{ name: 'totalAssets',  type: ABIDataTypes.UINT256 }] },
+  { name: 'getTotalShares',  type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }],                                                  outputs: [{ name: 'totalShares',  type: ABIDataTypes.UINT256 }] },
 ];
 
 const LENDING_ABI: BitcoinInterfaceAbi = [
-  { name: 'depositCollateral', type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'borrow',            type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'repay',             type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'getUserDebt',       type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
-  { name: 'getUserCollateral', type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
+  { name: 'depositCollateral', type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [] },
+  { name: 'borrow',            type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [] },
+  { name: 'repay',             type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [] },
+  { name: 'getUserDebt',       type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }], outputs: [{ name: 'debt',       type: ABIDataTypes.UINT256 }] },
+  { name: 'getUserCollateral', type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }], outputs: [{ name: 'collateral', type: ABIDataTypes.UINT256 }] },
 ];
 
 const OP20_ABI: BitcoinInterfaceAbi = [
-  { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner', type: ABIDataTypes.ADDRESS }] },
+  { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner', type: ABIDataTypes.ADDRESS }], outputs: [{ name: 'balance', type: ABIDataTypes.UINT256 }] },
 ];
 
 // ── Read helper ───────────────────────────────────────────────────────────────
@@ -99,16 +99,27 @@ async function readContract(address: string, abi: BitcoinInterfaceAbi, method: s
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (c as any)[method](...params);
 
-    // If the result is a plain string/number/bigint (e.g. raw hex), convert directly
     if (result === null || result === undefined) return BigInt(0);
     if (typeof result === 'bigint') return result;
     if (typeof result === 'number') return BigInt(result);
     if (typeof result === 'string') return BigInt(result);
 
-    // Otherwise dig into the result object
-    const val = result?.properties?.value ?? result?.value ?? result?.decoded?.[0] ?? result;
-    if (typeof val === 'bigint') return val;
-    if (typeof val === 'string' || typeof val === 'number') return BigInt(String(val));
+    // opnet returns decoded values in result.properties as a Map or object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const props = result?.properties as any;
+    if (props) {
+      // Try Map first
+      if (typeof props.values === 'function') {
+        const first = [...props.values()][0];
+        if (first !== undefined) return BigInt(String(first));
+      }
+      // Try plain object
+      const firstVal = Object.values(props)[0];
+      if (firstVal !== undefined) return BigInt(String(firstVal));
+    }
+
+    const val = result?.value ?? result?.decoded?.[0];
+    if (val !== undefined) return BigInt(String(val));
     return BigInt(0);
   } catch (e) {
     console.error(`readContract ${method}:`, e);

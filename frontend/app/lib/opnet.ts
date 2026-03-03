@@ -71,17 +71,35 @@ let _cachedPubKeyAddress: Address | null = null;
 
 export async function getPublicKey(address: string): Promise<Address> {
   if (_cachedPubKeyAddress) return _cachedPubKeyAddress;
+
+  // Try wallet's own getPublicKey method first
+  try {
+    const wallet = getWalletProvider();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = await (wallet as any)?.getPublicKey?.(address);
+    if (raw && typeof raw === 'string' && raw.length > 0) {
+      const result = Address.fromString(raw);
+      _cachedPubKeyAddress = result;
+      return result;
+    }
+  } catch { /* fall through */ }
+
+  // Try provider RPC lookup
   try {
     const info = await getProvider().getPublicKeyInfo(address, false);
-    if (!info) throw new Error('No public key returned for address');
-    _cachedPubKeyAddress = info;
-    return info;
-  } catch (e) {
-    throw new Error(
-      `Could not resolve public key for ${address}. ` +
-      `Please provide your public key manually (e.g. 0x02...).`
-    );
-  }
+    if (info) {
+      _cachedPubKeyAddress = info;
+      return info;
+    }
+  } catch { /* fall through */ }
+
+  throw new Error('PUBKEY_REQUIRED');
+}
+
+export function setCachedPublicKey(pubKeyHex: string): Address {
+  const addr = Address.fromString(pubKeyHex);
+  _cachedPubKeyAddress = addr;
+  return addr;
 }
 
 export function parseAmount(amount: string, decimals = 8): bigint {

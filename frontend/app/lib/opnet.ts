@@ -16,7 +16,7 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 let _provider: JSONRpcProvider | null = null;
 function getProvider(): JSONRpcProvider {
   if (!_provider) {
-    _provider = new JSONRpcProvider('https://testnet.opnet.org', testnet);
+    _provider = new JSONRpcProvider('https://testnet.opnet.org', networks.testnet);
   }
   return _provider;
 }
@@ -63,7 +63,7 @@ export function parseAmount(amount: string, decimals = 8): bigint {
 }
 
 export function formatAmount(raw: bigint, decimals = 8): string {
-  if (raw === 0n) return '0';
+  if (raw === BigInt(0)) return '0';
   const s = raw.toString().padStart(decimals + 1, '0');
   const whole = s.slice(0, -decimals) || '0';
   const frac = s.slice(-decimals).replace(/0+$/, '');
@@ -98,14 +98,14 @@ const OP20_ABI = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function readContract(address: string, abi: any[], method: string, params: unknown[]): Promise<bigint> {
   try {
-    const c = getContract(address, abi, getProvider(), testnet);
+    const c = getContract(address, abi, getProvider(), networks.testnet);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (c as any)[method](...params);
     const val = result?.properties?.value ?? result?.value ?? result?.decoded?.[0] ?? result;
     return BigInt(String(val ?? 0));
   } catch (e) {
     console.error(`readContract ${method}:`, e);
-    return 0n;
+    return BigInt(0);
   }
 }
 
@@ -145,7 +145,7 @@ export async function getUserCollateral(user: string, token: string): Promise<bi
 async function writeContract(address: string, abi: any[], method: string, params: unknown[]): Promise<string> {
   const wallet = getWalletProvider();
   if (!wallet) throw new Error('OP Wallet not found');
-  const c = getContract(address, abi, getProvider(), testnet);
+  const c = getContract(address, abi, getProvider(), networks.testnet);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const encoded = await (c as any)[method](...params);
   const calldata: Uint8Array = encoded?.calldata ?? encoded;

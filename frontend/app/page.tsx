@@ -12,13 +12,26 @@ type Tab = 'vault' | 'lending';
 
 export default function Home() {
   const { address, connect, isConnecting } = useWallet();
-  const { tokens, loading, refresh } = useVaultData(address);
+  const { tokens, loading, refresh, pubkeyRequired, submitPublicKey } = useVaultData(address);
   const [tab, setTab] = useState<Tab>('vault');
   const [mounted, setMounted] = useState(false);
+  const [pubkeyInput, setPubkeyInput] = useState('');
+  const [pubkeyError, setPubkeyError] = useState<string | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) return null;
+
+  const handleSubmitPubkey = () => {
+    const val = pubkeyInput.trim();
+    if (!val.startsWith('0x') || val.length < 68) {
+      setPubkeyError('Invalid format. Must be a compressed public key starting with 0x02 or 0x03.');
+      return;
+    }
+    setPubkeyError(null);
+    submitPublicKey(val);
+    setPubkeyInput('');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,6 +93,38 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {/* Public key required banner */}
+            {pubkeyRequired && (
+              <div className="mb-6 card p-5 fade-up border border-[rgba(247,147,26,0.3)] bg-[rgba(247,147,26,0.05)]">
+                <p className="font-mono text-[11px] text-[#F7931A] uppercase tracking-widest mb-1">
+                  ⚠ Public Key Required
+                </p>
+                <p className="font-mono text-xs text-[rgba(226,232,240,0.5)] mb-3">
+                  Your wallet could not automatically provide a public key. To view your vault
+                  positions and interact with the protocol, paste your compressed public key below.
+                  It looks like: <span className="text-[rgba(226,232,240,0.7)]">0x02abc123...</span>
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    className="input-field flex-1 text-xs"
+                    placeholder="0x02... or 0x03..."
+                    value={pubkeyInput}
+                    onChange={(e) => setPubkeyInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSubmitPubkey()}
+                  />
+                  <button
+                    className="btn-primary !px-4 !py-2 text-xs whitespace-nowrap"
+                    onClick={handleSubmitPubkey}
+                  >
+                    Submit
+                  </button>
+                </div>
+                {pubkeyError && (
+                  <p className="font-mono text-[10px] text-red-400 mt-2">{pubkeyError}</p>
+                )}
+              </div>
+            )}
+
             {/* Token stats row */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">

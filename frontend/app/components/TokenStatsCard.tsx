@@ -28,7 +28,7 @@ export default function TokenStatsCard({ token }: Props) {
     ? 'rgba(247,147,26,0.05)'
     : 'rgba(0,255,209,0.05)';
 
-  const hasBalance = token.walletBalanceRaw > 0n;
+  const hasBalance = token.walletBalanceRaw > BigInt(0);
   const hasShares = token.userShares !== '0';
   const hasDebt = token.userDebt !== '0';
 

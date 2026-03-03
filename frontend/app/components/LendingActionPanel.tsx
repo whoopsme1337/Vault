@@ -7,6 +7,8 @@ import {
   lendingRepay,
   TOKEN_ADDRESSES,
   parseAmount,
+  getAddress,
+  getPublicKey,
 } from '../lib/opnet';
 
 type LendMode = 'collateral' | 'borrow' | 'repay';
@@ -39,16 +41,20 @@ export default function LendingActionPanel({ onSuccess }: Props) {
     setError(null);
     setTxHash(null);
     try {
+      const address = await getAddress();
+      if (!address) throw new Error('Wallet not connected. Please connect first.');
+      const pubKey = await getPublicKey(address);
+
       const tokenAddr = TOKEN_ADDRESSES[token];
       const rawAmount = parseAmount(amount, 8);
 
       let hash: string;
       if (mode === 'collateral') {
-        hash = await lendingDepositCollateral(tokenAddr, rawAmount);
+        hash = await lendingDepositCollateral(tokenAddr, rawAmount, pubKey);
       } else if (mode === 'borrow') {
-        hash = await lendingBorrow(tokenAddr, rawAmount);
+        hash = await lendingBorrow(tokenAddr, rawAmount, pubKey);
       } else {
-        hash = await lendingRepay(tokenAddr, rawAmount);
+        hash = await lendingRepay(tokenAddr, rawAmount, pubKey);
       }
       setTxHash(hash);
       setAmount('');

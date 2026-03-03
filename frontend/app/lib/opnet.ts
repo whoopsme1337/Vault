@@ -1,6 +1,7 @@
 'use client';
 import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes, BitcoinAbiTypes } from 'opnet';
 import { networks, Network } from '@btc-vision/bitcoin';
+import { Address } from '@btc-vision/transaction';
 
 const NETWORK: Network = networks.testnet;
 
@@ -130,31 +131,31 @@ async function readContract(address: string, abi: BitcoinInterfaceAbi, method: s
 // ── Token ─────────────────────────────────────────────────────────────────────
 
 export async function getTokenBalance(token: string, user: string): Promise<bigint> {
-  return readContract(token, OP20_ABI, 'balanceOf', [user]);
+  return readContract(token, OP20_ABI, 'balanceOf', [Address.fromString(user)]);
 }
 
 // ── Vault reads ───────────────────────────────────────────────────────────────
 
 export async function getUserShares(user: string, token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getUserShares', [user, token]);
+  return readContract(VAULT, VAULT_ABI, 'getUserShares', [Address.fromString(user), Address.fromString(token)]);
 }
 export async function getExchangeRate(token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getExchangeRate', [token]);
+  return readContract(VAULT, VAULT_ABI, 'getExchangeRate', [Address.fromString(token)]);
 }
 export async function getTotalAssets(token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getTotalAssets', [token]);
+  return readContract(VAULT, VAULT_ABI, 'getTotalAssets', [Address.fromString(token)]);
 }
 export async function getTotalShares(token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getTotalShares', [token]);
+  return readContract(VAULT, VAULT_ABI, 'getTotalShares', [Address.fromString(token)]);
 }
 
 // ── Lending reads ─────────────────────────────────────────────────────────────
 
 export async function getUserDebt(user: string, token: string): Promise<bigint> {
-  return readContract(LENDING, LENDING_ABI, 'getUserDebt', [user, token]);
+  return readContract(LENDING, LENDING_ABI, 'getUserDebt', [Address.fromString(user), Address.fromString(token)]);
 }
 export async function getUserCollateral(user: string, token: string): Promise<bigint> {
-  return readContract(LENDING, LENDING_ABI, 'getUserCollateral', [user, token]);
+  return readContract(LENDING, LENDING_ABI, 'getUserCollateral', [Address.fromString(user), Address.fromString(token)]);
 }
 
 // ── Write helper ──────────────────────────────────────────────────────────────
@@ -173,20 +174,20 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 // ── Vault writes ──────────────────────────────────────────────────────────────
 
 export async function vaultDeposit(token: string, amount: bigint): Promise<string> {
-  return writeContract(VAULT, VAULT_ABI, 'deposit', [token, amount]);
+  return writeContract(VAULT, VAULT_ABI, 'deposit', [Address.fromString(token), amount]);
 }
 export async function vaultWithdraw(token: string, shares: bigint): Promise<string> {
-  return writeContract(VAULT, VAULT_ABI, 'withdraw', [token, shares]);
+  return writeContract(VAULT, VAULT_ABI, 'withdraw', [Address.fromString(token), shares]);
 }
 
 // ── Lending writes ────────────────────────────────────────────────────────────
 
 export async function lendingDepositCollateral(token: string, amount: bigint): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [token, amount]);
+  return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [Address.fromString(token), amount]);
 }
 export async function lendingBorrow(token: string, amount: bigint): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'borrow', [token, amount]);
+  return writeContract(LENDING, LENDING_ABI, 'borrow', [Address.fromString(token), amount]);
 }
 export async function lendingRepay(token: string, amount: bigint): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'repay', [token, amount]);
+  return writeContract(LENDING, LENDING_ABI, 'repay', [Address.fromString(token), amount]);
 }

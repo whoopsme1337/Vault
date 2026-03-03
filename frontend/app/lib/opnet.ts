@@ -1,7 +1,6 @@
 'use client';
-import { JSONRpcProvider, getContract } from 'opnet';
+import { JSONRpcProvider, getContract, BitcoinInterfaceAbi } from 'opnet';
 import { networks, Network } from '@btc-vision/bitcoin';
-import { BitcoinInterfaceAbi } from 'opnet/browser/abi/interfaces/BitcoinInterfaceAbi.js';
 
 const NETWORK: Network = networks.testnet;
 

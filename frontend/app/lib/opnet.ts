@@ -1,10 +1,13 @@
 'use client';
 import { JSONRpcProvider, getContract } from 'opnet';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, Network } from '@btc-vision/bitcoin';
+import { BitcoinInterfaceAbi } from 'opnet/browser/abi/interfaces/BitcoinInterfaceAbi.js';
 
-const PILL = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
-const MOTO = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
-const VAULT = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? '';
+const NETWORK: Network = networks.testnet;
+
+const PILL    = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
+const MOTO    = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
+const VAULT   = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? '';
 const LENDING = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? '';
 
 export const TOKEN_ADDRESSES = { PILL, MOTO } as const;
@@ -16,26 +19,22 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 let _provider: JSONRpcProvider | null = null;
 function getProvider(): JSONRpcProvider {
   if (!_provider) {
-    _provider = new JSONRpcProvider('https://testnet.opnet.org', networks.testnet);
+    _provider = new JSONRpcProvider('https://testnet.opnet.org', NETWORK);
   }
   return _provider;
 }
 
 // ── Wallet ────────────────────────────────────────────────────────────────────
 
-declare global {
-  interface Window {
-    opnet?: {
-      requestAccounts: () => Promise<string[]>;
-      getAccounts: () => Promise<string[]>;
-      signAndBroadcastInteraction: (args: { to: string; calldata: Uint8Array }) => Promise<{ txid: string }[]>;
-    };
-  }
+interface OPWalletProvider {
+  requestAccounts: () => Promise<string[]>;
+  getAccounts: () => Promise<string[]>;
+  signAndBroadcastInteraction: (args: { to: string; calldata: Uint8Array }) => Promise<{ txid: string }[]>;
 }
 
-export function getWalletProvider() {
+export function getWalletProvider(): OPWalletProvider | null {
   if (typeof window === 'undefined') return null;
-  return window.opnet ?? null;
+  return (window as unknown as { opnet?: OPWalletProvider }).opnet ?? null;
 }
 
 export async function connectWallet(): Promise<string> {
@@ -72,16 +71,16 @@ export function formatAmount(raw: bigint, decimals = 8): string {
 
 // ── ABIs ──────────────────────────────────────────────────────────────────────
 
-const VAULT_ABI = [
-  { name: 'deposit',        inputs: [{ name: 'token', type: 'address' }, { name: 'amount', type: 'uint256' }] },
-  { name: 'withdraw',       inputs: [{ name: 'token', type: 'address' }, { name: 'shares', type: 'uint256' }] },
-  { name: 'getUserShares',  inputs: [{ name: 'user',  type: 'address' }, { name: 'token',  type: 'address' }] },
-  { name: 'getExchangeRate',inputs: [{ name: 'token', type: 'address' }] },
-  { name: 'getTotalAssets', inputs: [{ name: 'token', type: 'address' }] },
-  { name: 'getTotalShares', inputs: [{ name: 'token', type: 'address' }] },
+const VAULT_ABI: BitcoinInterfaceAbi = [
+  { name: 'deposit',         inputs: [{ name: 'token', type: 'address' }, { name: 'amount', type: 'uint256' }] },
+  { name: 'withdraw',        inputs: [{ name: 'token', type: 'address' }, { name: 'shares', type: 'uint256' }] },
+  { name: 'getUserShares',   inputs: [{ name: 'user',  type: 'address' }, { name: 'token',  type: 'address' }] },
+  { name: 'getExchangeRate', inputs: [{ name: 'token', type: 'address' }] },
+  { name: 'getTotalAssets',  inputs: [{ name: 'token', type: 'address' }] },
+  { name: 'getTotalShares',  inputs: [{ name: 'token', type: 'address' }] },
 ];
 
-const LENDING_ABI = [
+const LENDING_ABI: BitcoinInterfaceAbi = [
   { name: 'depositCollateral', inputs: [{ name: 'token', type: 'address' }, { name: 'amount', type: 'uint256' }] },
   { name: 'borrow',            inputs: [{ name: 'token', type: 'address' }, { name: 'amount', type: 'uint256' }] },
   { name: 'repay',             inputs: [{ name: 'token', type: 'address' }, { name: 'amount', type: 'uint256' }] },
@@ -89,16 +88,15 @@ const LENDING_ABI = [
   { name: 'getUserCollateral', inputs: [{ name: 'user',  type: 'address' }, { name: 'token',  type: 'address' }] },
 ];
 
-const OP20_ABI = [
+const OP20_ABI: BitcoinInterfaceAbi = [
   { name: 'balanceOf', inputs: [{ name: 'owner', type: 'address' }] },
 ];
 
 // ── Read helper ───────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function readContract(address: string, abi: any[], method: string, params: unknown[]): Promise<bigint> {
+async function readContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[]): Promise<bigint> {
   try {
-    const c = getContract(address, abi, getProvider(), networks.testnet);
+    const c = getContract(address, abi, getProvider(), NETWORK);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (c as any)[method](...params);
     const val = result?.properties?.value ?? result?.value ?? result?.decoded?.[0] ?? result;
@@ -141,11 +139,10 @@ export async function getUserCollateral(user: string, token: string): Promise<bi
 
 // ── Write helper ──────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function writeContract(address: string, abi: any[], method: string, params: unknown[]): Promise<string> {
+async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[]): Promise<string> {
   const wallet = getWalletProvider();
   if (!wallet) throw new Error('OP Wallet not found');
-  const c = getContract(address, abi, getProvider(), networks.testnet);
+  const c = getContract(address, abi, getProvider(), NETWORK);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const encoded = await (c as any)[method](...params);
   const calldata: Uint8Array = encoded?.calldata ?? encoded;

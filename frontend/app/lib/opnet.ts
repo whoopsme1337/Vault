@@ -67,18 +67,15 @@ export async function getAddress(): Promise<string | null> {
 
 // ── Public Key Resolution ─────────────────────────────────────────────────────
 
-let _cachedPubKey: string | null = null;
+let _cachedPubKeyAddress: Address | null = null;
 
-export async function getPublicKey(address: string): Promise<string> {
-  if (_cachedPubKey) return _cachedPubKey;
+export async function getPublicKey(address: string): Promise<Address> {
+  if (_cachedPubKeyAddress) return _cachedPubKeyAddress;
   try {
     const info = await getProvider().getPublicKeyInfo(address, false);
-    // getPublicKeyInfo returns an Address — toHex() gives the 0x02... public key
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pubKey: string = (info as any)?.toHex?.() ?? info?.toString?.() ?? String(info);
-    if (!pubKey) throw new Error('No public key returned for address');
-    _cachedPubKey = pubKey;
-    return pubKey;
+    if (!info) throw new Error('No public key returned for address');
+    _cachedPubKeyAddress = info;
+    return info;
   } catch (e) {
     throw new Error(
       `Could not resolve public key for ${address}. ` +
@@ -167,9 +164,8 @@ export async function getTokenBalance(token: string, user: string): Promise<bigi
 
 // ── Vault reads ───────────────────────────────────────────────────────────────
 
-// user must be a public key hex string e.g. 0x02...
-export async function getUserShares(userPubKey: string, token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getUserShares', [Address.fromString(userPubKey), Address.fromString(toVaultTokenAddress(token))]);
+export async function getUserShares(userPubKey: Address, token: string): Promise<bigint> {
+  return readContract(VAULT, VAULT_ABI, 'getUserShares', [userPubKey, Address.fromString(toVaultTokenAddress(token))]);
 }
 export async function getExchangeRate(token: string): Promise<bigint> {
   return readContract(VAULT, VAULT_ABI, 'getExchangeRate', [Address.fromString(toVaultTokenAddress(token))]);
@@ -183,20 +179,18 @@ export async function getTotalShares(token: string): Promise<bigint> {
 
 // ── Lending reads ─────────────────────────────────────────────────────────────
 
-// user must be a public key hex string e.g. 0x02...
-export async function getUserDebt(userPubKey: string, token: string): Promise<bigint> {
-  return readContract(LENDING, LENDING_ABI, 'getUserDebt', [Address.fromString(userPubKey), Address.fromString(toVaultTokenAddress(token))]);
+export async function getUserDebt(userPubKey: Address, token: string): Promise<bigint> {
+  return readContract(LENDING, LENDING_ABI, 'getUserDebt', [userPubKey, Address.fromString(toVaultTokenAddress(token))]);
 }
-export async function getUserCollateral(userPubKey: string, token: string): Promise<bigint> {
-  return readContract(LENDING, LENDING_ABI, 'getUserCollateral', [Address.fromString(userPubKey), Address.fromString(toVaultTokenAddress(token))]);
+export async function getUserCollateral(userPubKey: Address, token: string): Promise<bigint> {
+  return readContract(LENDING, LENDING_ABI, 'getUserCollateral', [userPubKey, Address.fromString(toVaultTokenAddress(token))]);
 }
 
 // ── Write helper ──────────────────────────────────────────────────────────────
 
-async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[], senderPubKey?: string): Promise<string> {
+async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[], sender?: Address): Promise<string> {
   const wallet = getWalletProvider();
   if (!wallet) throw new Error('OP Wallet not found');
-  const sender = senderPubKey ? Address.fromString(senderPubKey) : undefined;
   const c = getContract(address, abi, getProvider(), NETWORK, sender);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const encoded = await (c as any)[method](...params);
@@ -207,21 +201,21 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 
 // ── Vault writes ──────────────────────────────────────────────────────────────
 
-export async function vaultDeposit(token: string, amount: bigint, senderPubKey: string): Promise<string> {
-  return writeContract(VAULT, VAULT_ABI, 'deposit', [Address.fromString(toVaultTokenAddress(token)), amount], senderPubKey);
+export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {
+  return writeContract(VAULT, VAULT_ABI, 'deposit', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
 }
-export async function vaultWithdraw(token: string, shares: bigint, senderPubKey: string): Promise<string> {
-  return writeContract(VAULT, VAULT_ABI, 'withdraw', [Address.fromString(toVaultTokenAddress(token)), shares], senderPubKey);
+export async function vaultWithdraw(token: string, shares: bigint, sender: Address): Promise<string> {
+  return writeContract(VAULT, VAULT_ABI, 'withdraw', [Address.fromString(toVaultTokenAddress(token)), shares], sender);
 }
 
 // ── Lending writes ────────────────────────────────────────────────────────────
 
-export async function lendingDepositCollateral(token: string, amount: bigint, senderPubKey: string): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [Address.fromString(toVaultTokenAddress(token)), amount], senderPubKey);
+export async function lendingDepositCollateral(token: string, amount: bigint, sender: Address): Promise<string> {
+  return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
 }
-export async function lendingBorrow(token: string, amount: bigint, senderPubKey: string): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'borrow', [Address.fromString(toVaultTokenAddress(token)), amount], senderPubKey);
+export async function lendingBorrow(token: string, amount: bigint, sender: Address): Promise<string> {
+  return writeContract(LENDING, LENDING_ABI, 'borrow', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
 }
-export async function lendingRepay(token: string, amount: bigint, senderPubKey: string): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'repay', [Address.fromString(toVaultTokenAddress(token)), amount], senderPubKey);
+export async function lendingRepay(token: string, amount: bigint, sender: Address): Promise<string> {
+  return writeContract(LENDING, LENDING_ABI, 'repay', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
 }

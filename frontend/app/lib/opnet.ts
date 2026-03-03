@@ -72,8 +72,10 @@ let _cachedPubKey: string | null = null;
 export async function getPublicKey(address: string): Promise<string> {
   if (_cachedPubKey) return _cachedPubKey;
   try {
-    const info = await getProvider().getPublicKeyInfo(address);
-    const pubKey: string = info?.publicKey ?? info?.pubKey ?? info;
+    const info = await getProvider().getPublicKeyInfo(address, false);
+    // getPublicKeyInfo returns an Address — toHex() gives the 0x02... public key
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pubKey: string = (info as any)?.toHex?.() ?? info?.toString?.() ?? String(info);
     if (!pubKey) throw new Error('No public key returned for address');
     _cachedPubKey = pubKey;
     return pubKey;

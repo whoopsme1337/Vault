@@ -9,9 +9,11 @@ import {
   getUserDebt,
   getUserCollateral,
   getTokenBalance,
+  getPublicKey,
   TOKEN_ADDRESSES,
   formatAmount,
 } from '../lib/opnet';
+import type { Address } from '@btc-vision/transaction';
 
 export interface TokenInfo {
   symbol: string;
@@ -39,17 +41,26 @@ export function useVaultData(userAddress: string | null) {
     setLoading(true);
     setError(null);
     try {
+      // Resolve public key once for all calls that need it
+      let pubKey: Address | null = null;
+      try {
+        pubKey = await getPublicKey(userAddress);
+      } catch {
+        // If public key resolution fails, vault/lending user data will show zeros
+        console.warn('Could not resolve public key — vault/lending data unavailable');
+      }
+
       const entries = Object.entries(TOKEN_ADDRESSES) as [string, string][];
       const results = await Promise.all(
         entries.map(async ([symbol, address]) => {
           const [balance, shares, rate, assets, totalSh, debt, collateral] = await Promise.all([
-            getTokenBalance(address, userAddress).catch(() => 0n),
-            getUserShares(userAddress, address).catch(() => 0n),
-            getExchangeRate(address).catch(() => 10n ** 18n),
-            getTotalAssets(address).catch(() => 0n),
-            getTotalShares(address).catch(() => 0n),
-            getUserDebt(userAddress, address).catch(() => 0n),
-            getUserCollateral(userAddress, address).catch(() => 0n),
+            getTokenBalance(address, userAddress).catch(() => BigInt(0)),
+            pubKey ? getUserShares(pubKey, address).catch(() => BigInt(0)) : Promise.resolve(BigInt(0)),
+            getExchangeRate(address).catch(() => BigInt(10) ** BigInt(18)),
+            getTotalAssets(address).catch(() => BigInt(0)),
+            getTotalShares(address).catch(() => BigInt(0)),
+            pubKey ? getUserDebt(pubKey, address).catch(() => BigInt(0)) : Promise.resolve(BigInt(0)),
+            pubKey ? getUserCollateral(pubKey, address).catch(() => BigInt(0)) : Promise.resolve(BigInt(0)),
           ]);
           return {
             symbol,

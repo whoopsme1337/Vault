@@ -98,8 +98,18 @@ async function readContract(address: string, abi: BitcoinInterfaceAbi, method: s
     const c = getContract(address, abi, getProvider(), NETWORK);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (c as any)[method](...params);
+
+    // If the result is a plain string/number/bigint (e.g. raw hex), convert directly
+    if (result === null || result === undefined) return BigInt(0);
+    if (typeof result === 'bigint') return result;
+    if (typeof result === 'number') return BigInt(result);
+    if (typeof result === 'string') return BigInt(result);
+
+    // Otherwise dig into the result object
     const val = result?.properties?.value ?? result?.value ?? result?.decoded?.[0] ?? result;
-    return BigInt(String(val ?? 0));
+    if (typeof val === 'bigint') return val;
+    if (typeof val === 'string' || typeof val === 'number') return BigInt(String(val));
+    return BigInt(0);
   } catch (e) {
     console.error(`readContract ${method}:`, e);
     return BigInt(0);

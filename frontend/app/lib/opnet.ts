@@ -1,5 +1,5 @@
 'use client';
-import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes } from 'opnet';
+import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes, BitcoinAbiTypes } from 'opnet';
 import { networks, Network } from '@btc-vision/bitcoin';
 
 const NETWORK: Network = networks.testnet;
@@ -71,24 +71,24 @@ export function formatAmount(raw: bigint, decimals = 8): string {
 // ── ABIs ──────────────────────────────────────────────────────────────────────
 
 const VAULT_ABI: BitcoinInterfaceAbi = [
-  { name: 'deposit',         inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'withdraw',        inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'shares', type: ABIDataTypes.UINT256 }] },
-  { name: 'getUserShares',   inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
-  { name: 'getExchangeRate', inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
-  { name: 'getTotalAssets',  inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
-  { name: 'getTotalShares',  inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
+  { name: 'deposit',         type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
+  { name: 'withdraw',        type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'shares', type: ABIDataTypes.UINT256 }] },
+  { name: 'getUserShares',   type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
+  { name: 'getExchangeRate', type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
+  { name: 'getTotalAssets',  type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
+  { name: 'getTotalShares',  type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }] },
 ];
 
 const LENDING_ABI: BitcoinInterfaceAbi = [
-  { name: 'depositCollateral', inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'borrow',            inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'repay',             inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
-  { name: 'getUserDebt',       inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
-  { name: 'getUserCollateral', inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
+  { name: 'depositCollateral', type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
+  { name: 'borrow',            type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
+  { name: 'repay',             type: BitcoinAbiTypes.Function, inputs: [{ name: 'token', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }] },
+  { name: 'getUserDebt',       type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
+  { name: 'getUserCollateral', type: BitcoinAbiTypes.Function, inputs: [{ name: 'user',  type: ABIDataTypes.ADDRESS }, { name: 'token',  type: ABIDataTypes.ADDRESS }] },
 ];
 
 const OP20_ABI: BitcoinInterfaceAbi = [
-  { name: 'balanceOf', inputs: [{ name: 'owner', type: ABIDataTypes.ADDRESS }] },
+  { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner', type: ABIDataTypes.ADDRESS }] },
 ];
 
 // ── Read helper ───────────────────────────────────────────────────────────────

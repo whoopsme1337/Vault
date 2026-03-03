@@ -6,6 +6,8 @@ import {
   vaultWithdraw,
   TOKEN_ADDRESSES,
   parseAmount,
+  getAddress,
+  getPublicKey,
 } from '../lib/opnet';
 import type { TokenInfo } from '../hooks/useVaultData';
 
@@ -42,14 +44,18 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
     setError(null);
     setTxHash(null);
     try {
+      const address = await getAddress();
+      if (!address) throw new Error('Wallet not connected. Please connect first.');
+      const pubKey = await getPublicKey(address);
+
       const tokenAddr = TOKEN_ADDRESSES[token];
       const rawAmount = parseAmount(amount, 8);
 
       let hash: string;
       if (mode === 'deposit') {
-        hash = await vaultDeposit(tokenAddr, rawAmount);
+        hash = await vaultDeposit(tokenAddr, rawAmount, pubKey);
       } else {
-        hash = await vaultWithdraw(tokenAddr, rawAmount);
+        hash = await vaultWithdraw(tokenAddr, rawAmount, pubKey);
       }
       setTxHash(hash);
       setAmount('');

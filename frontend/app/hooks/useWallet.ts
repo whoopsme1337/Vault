@@ -8,7 +8,18 @@ export function useWallet() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getAddress().then(addr => { if (addr) setAddress(addr); });
+    // Retry getting address until wallet is ready
+    let attempts = 0;
+    const tryGetAddress = async () => {
+      const addr = await getAddress();
+      if (addr) {
+        setAddress(addr);
+      } else if (attempts < 10) {
+        attempts++;
+        setTimeout(tryGetAddress, 500);
+      }
+    };
+    tryGetAddress();
   }, []);
 
   const connect = async () => {

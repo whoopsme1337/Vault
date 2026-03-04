@@ -20,9 +20,54 @@ export const TOKEN_BTC_ADDRESSES: Record<string, string> = {
 export type TokenSymbol = keyof typeof TOKEN_ADDRESSES;
 export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 
-// Vault/Lending contracts expect opt1... bech32 addresses for tokens
-function toVaultTokenAddress(hexAddress: string): string {
-  return TOKEN_BTC_ADDRESSES[hexAddress] ?? hexAddress;
+// ── Address helpers ───────────────────────────────────────────────────────────
+
+// Decode an opt1... bech32m address to an Address object
+function decodeOpt1Address(opt1: string): Address {
+  // bech32m charset
+  const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+  const str = opt1.toLowerCase();
+  const sepIdx = str.lastIndexOf('1');
+  if (sepIdx < 1) throw new Error(`Invalid opt1 address: ${opt1}`);
+  const data = str.slice(sepIdx + 1, -6); // strip hrp, separator, and 6-char checksum
+  const words: number[] = [];
+  for (const c of data) {
+    const val = CHARSET.indexOf(c);
+    if (val < 0) throw new Error(`Invalid bech32m char: ${c}`);
+    words.push(val);
+  }
+  // Convert from 5-bit groups to 8-bit bytes (skip witness version byte)
+  const version = words[0];
+  const payload = words.slice(1);
+  const bytes = new Uint8Array(Math.floor(payload.length * 5 / 8));
+  let acc = 0, bits = 0, idx = 0;
+  for (const val of payload) {
+    acc = (acc << 5) | val;
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes[idx++] = (acc >> bits) & 0xff;
+    }
+  }
+  void version;
+  return Address.wrap(bytes.slice(0, 32));
+}
+
+// Convert token hex address to Address object for vault/lending calls
+function toVaultAddress(hexAddress: string): Address {
+  const btcAddr = TOKEN_BTC_ADDRESSES[hexAddress];
+  if (btcAddr) {
+    return decodeOpt1Address(btcAddr);
+  }
+  // fallback: try as hex
+  const hex = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
+  const bytes = new Uint8Array(32);
+  const start = Math.max(0, hex.length - 64);
+  const relevant = hex.slice(start).padStart(64, '0');
+  for (let i = 0; i < 32; i++) {
+    bytes[i] = parseInt(relevant.slice(i * 2, i * 2 + 2), 16);
+  }
+  return Address.wrap(bytes);
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -201,25 +246,25 @@ export async function getTokenBalance(token: string, user: string): Promise<bigi
 // ── Vault reads ───────────────────────────────────────────────────────────────
 
 export async function getUserShares(userPubKey: Address, token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getUserShares', [userPubKey, Address.fromString(toVaultTokenAddress(token))]);
+  return readContract(VAULT, VAULT_ABI, 'getUserShares', [userPubKey, toVaultAddress(token)]);
 }
 export async function getExchangeRate(token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getExchangeRate', [Address.fromString(toVaultTokenAddress(token))]);
+  return readContract(VAULT, VAULT_ABI, 'getExchangeRate', [toVaultAddress(token)]);
 }
 export async function getTotalAssets(token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getTotalAssets', [Address.fromString(toVaultTokenAddress(token))]);
+  return readContract(VAULT, VAULT_ABI, 'getTotalAssets', [toVaultAddress(token)]);
 }
 export async function getTotalShares(token: string): Promise<bigint> {
-  return readContract(VAULT, VAULT_ABI, 'getTotalShares', [Address.fromString(toVaultTokenAddress(token))]);
+  return readContract(VAULT, VAULT_ABI, 'getTotalShares', [toVaultAddress(token)]);
 }
 
 // ── Lending reads ─────────────────────────────────────────────────────────────
 
 export async function getUserDebt(userPubKey: Address, token: string): Promise<bigint> {
-  return readContract(LENDING, LENDING_ABI, 'getUserDebt', [userPubKey, Address.fromString(toVaultTokenAddress(token))]);
+  return readContract(LENDING, LENDING_ABI, 'getUserDebt', [userPubKey, toVaultAddress(token)]);
 }
 export async function getUserCollateral(userPubKey: Address, token: string): Promise<bigint> {
-  return readContract(LENDING, LENDING_ABI, 'getUserCollateral', [userPubKey, Address.fromString(toVaultTokenAddress(token))]);
+  return readContract(LENDING, LENDING_ABI, 'getUserCollateral', [userPubKey, toVaultAddress(token)]);
 }
 
 // ── Write helper ──────────────────────────────────────────────────────────────
@@ -238,20 +283,20 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 // ── Vault writes ──────────────────────────────────────────────────────────────
 
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {
-  return writeContract(VAULT, VAULT_ABI, 'deposit', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
+  return writeContract(VAULT, VAULT_ABI, 'deposit', [toVaultAddress(token), amount], sender);
 }
 export async function vaultWithdraw(token: string, shares: bigint, sender: Address): Promise<string> {
-  return writeContract(VAULT, VAULT_ABI, 'withdraw', [Address.fromString(toVaultTokenAddress(token)), shares], sender);
+  return writeContract(VAULT, VAULT_ABI, 'withdraw', [toVaultAddress(token), shares], sender);
 }
 
 // ── Lending writes ────────────────────────────────────────────────────────────
 
 export async function lendingDepositCollateral(token: string, amount: bigint, sender: Address): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
+  return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [toVaultAddress(token), amount], sender);
 }
 export async function lendingBorrow(token: string, amount: bigint, sender: Address): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'borrow', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
+  return writeContract(LENDING, LENDING_ABI, 'borrow', [toVaultAddress(token), amount], sender);
 }
 export async function lendingRepay(token: string, amount: bigint, sender: Address): Promise<string> {
-  return writeContract(LENDING, LENDING_ABI, 'repay', [Address.fromString(toVaultTokenAddress(token)), amount], sender);
+  return writeContract(LENDING, LENDING_ABI, 'repay', [toVaultAddress(token), amount], sender);
 }

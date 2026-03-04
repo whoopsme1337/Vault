@@ -76,18 +76,24 @@ export async function getPublicKey(address: string): Promise<Address> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const opnet = typeof window !== 'undefined' ? (window as any).opnet : null;
+    console.log('[getPublicKey] opnet:', !!opnet);
     const utxos: any[] = await opnet?.getBitcoinUtxos?.();
+    console.log('[getPublicKey] utxos:', utxos?.length, utxos?.[0]?.scriptPubKey?.hex);
     if (utxos?.length) {
       const scriptHex: string = utxos[0].scriptPubKey?.hex ?? '';
+      console.log('[getPublicKey] scriptHex:', scriptHex, 'starts5120:', scriptHex.startsWith('5120'), 'len:', scriptHex.length);
       // Taproot scriptPubKey = 5120 + 32 bytes x-only pubkey
       if (scriptHex.startsWith('5120') && scriptHex.length >= 68) {
         const pubkeyHex = '0x02' + scriptHex.slice(4, 68);
+        console.log('[getPublicKey] derived pubkey:', pubkeyHex);
         const result = Address.fromString(pubkeyHex);
         _cachedPubKeyAddress = result;
         return result;
       }
     }
-  } catch { /* fall through */ }
+  } catch (e) {
+    console.error('[getPublicKey] utxo extraction failed:', e);
+  }
 
   // Try provider RPC lookup as fallback
   try {

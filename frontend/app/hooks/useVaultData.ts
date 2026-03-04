@@ -16,6 +16,8 @@ import {
 } from '../lib/opnet';
 
 
+import type { Address } from '@btc-vision/transaction';
+
 export interface TokenInfo {
   symbol: string;
   address: string;
@@ -44,7 +46,7 @@ export function useVaultData(userAddress: string | null) {
     setError(null);
     try {
       // Resolve public key once for all calls that need it
-      let pubKey: string | null = null;
+      let pubKey: Address | null = null;
       try {
         pubKey = await getPublicKey(userAddress);
         setPubkeyRequired(false);

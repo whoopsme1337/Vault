@@ -73,12 +73,18 @@ let _cachedPubKey: Address | null = null;
 function pubkeyFromScriptHex(scriptHex: string): Address | null {
   // Taproot scriptPubKey = 5120 + 32 bytes x-only pubkey
   if (scriptHex.startsWith('5120') && scriptHex.length >= 68) {
-    const xOnlyHex = scriptHex.slice(4, 68); // 32 bytes = 64 hex chars
-    const bytes = new Uint8Array(32);
+    const xOnlyHex = scriptHex.slice(4, 68); // 32 bytes
+    const xOnlyBytes = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
-      bytes[i] = parseInt(xOnlyHex.slice(i * 2, i * 2 + 2), 16);
+      xOnlyBytes[i] = parseInt(xOnlyHex.slice(i * 2, i * 2 + 2), 16);
     }
-    return Address.wrap(bytes);
+    // Reconstruct compressed 33-byte pubkey (assume even = 0x02)
+    const compressed = new Uint8Array(33);
+    compressed[0] = 0x02;
+    compressed.set(xOnlyBytes, 1);
+    // new Address(mldsaKey=32bytes, classicalKey=33bytes)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new (Address as any)(xOnlyBytes, compressed);
   }
   return null;
 }
@@ -108,15 +114,17 @@ export async function getPublicKey(address: string): Promise<Address> {
 }
 
 export function setCachedPublicKey(pubKeyHex: string): Address {
-  // pubKeyHex = 0x02... (33 bytes compressed) or raw 32-byte hex
   const hex = pubKeyHex.startsWith('0x') ? pubKeyHex.slice(2) : pubKeyHex;
-  // Use last 32 bytes (x-only part)
-  const xOnly = hex.slice(hex.length - 64);
-  const bytes = new Uint8Array(32);
+  const xOnly = hex.slice(hex.length - 64).padStart(64, '0');
+  const xOnlyBytes = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
-    bytes[i] = parseInt(xOnly.slice(i * 2, i * 2 + 2), 16);
+    xOnlyBytes[i] = parseInt(xOnly.slice(i * 2, i * 2 + 2), 16);
   }
-  const addr = Address.wrap(bytes);
+  const compressed = new Uint8Array(33);
+  compressed[0] = 0x02;
+  compressed.set(xOnlyBytes, 1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const addr = new (Address as any)(xOnlyBytes, compressed);
   _cachedPubKey = addr;
   return addr;
 }

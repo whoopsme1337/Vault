@@ -16,7 +16,7 @@ import {
 } from '../lib/opnet';
 
 
-import type { Address } from '@btc-vision/transaction';
+import { Address } from '@btc-vision/transaction';
 
 export interface TokenInfo {
   symbol: string;
@@ -62,7 +62,7 @@ export function useVaultData(userAddress: string | null) {
       const results = await Promise.all(
         entries.map(async ([symbol, address]) => {
           const [balance, shares, rate, assets, totalSh, debt, collateral] = await Promise.all([
-            getTokenBalance(address, userAddress).catch(() => BigInt(0)),
+            pubKey ? getTokenBalance(address, pubKey).catch(() => BigInt(0)) : Promise.resolve(BigInt(0)),
             pubKey ? getUserShares(pubKey, address).catch(() => BigInt(0)) : Promise.resolve(BigInt(0)),
             getExchangeRate(address).catch(() => BigInt(10) ** BigInt(18)),
             getTotalAssets(address).catch(() => BigInt(0)),

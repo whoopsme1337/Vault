@@ -74,9 +74,9 @@ export async function getPublicKey(address: string): Promise<Address> {
 
   // Extract public key from UTXO scriptPubKey hex (Taproot: 5120<32-byte-xonly-pubkey>)
   try {
-    const wallet = getWalletProvider();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const utxos: any[] = await (wallet as any)?.getBitcoinUtxos?.();
+    const opnet = typeof window !== 'undefined' ? (window as any).opnet : null;
+    const utxos: any[] = await opnet?.getBitcoinUtxos?.();
     if (utxos?.length) {
       const scriptHex: string = utxos[0].scriptPubKey?.hex ?? '';
       // Taproot scriptPubKey = 5120 + 32 bytes x-only pubkey

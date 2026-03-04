@@ -22,52 +22,8 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 
 // ── Address helpers ───────────────────────────────────────────────────────────
 
-// Decode an opt1... bech32m address to an Address object
-function decodeOpt1Address(opt1: string): Address {
-  // bech32m charset
-  const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
-  const str = opt1.toLowerCase();
-  const sepIdx = str.lastIndexOf('1');
-  if (sepIdx < 1) throw new Error(`Invalid opt1 address: ${opt1}`);
-  const data = str.slice(sepIdx + 1, -6); // strip hrp, separator, and 6-char checksum
-  const words: number[] = [];
-  for (const c of data) {
-    const val = CHARSET.indexOf(c);
-    if (val < 0) throw new Error(`Invalid bech32m char: ${c}`);
-    words.push(val);
-  }
-  // Convert from 5-bit groups to 8-bit bytes (skip witness version byte)
-  const version = words[0];
-  const payload = words.slice(1);
-  const bytes = new Uint8Array(Math.floor(payload.length * 5 / 8));
-  let acc = 0, bits = 0, idx = 0;
-  for (const val of payload) {
-    acc = (acc << 5) | val;
-    bits += 5;
-    if (bits >= 8) {
-      bits -= 8;
-      bytes[idx++] = (acc >> bits) & 0xff;
-    }
-  }
-  void version;
-  return Address.wrap(bytes.slice(0, 32));
-}
-
-// Convert token hex address to Address object for vault/lending calls
 function toVaultAddress(hexAddress: string): Address {
-  const btcAddr = TOKEN_BTC_ADDRESSES[hexAddress];
-  if (btcAddr) {
-    return decodeOpt1Address(btcAddr);
-  }
-  // fallback: try as hex
-  const hex = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
-  const bytes = new Uint8Array(32);
-  const start = Math.max(0, hex.length - 64);
-  const relevant = hex.slice(start).padStart(64, '0');
-  for (let i = 0; i < 32; i++) {
-    bytes[i] = parseInt(relevant.slice(i * 2, i * 2 + 2), 16);
-  }
-  return Address.wrap(bytes);
+  return Address.fromString(hexAddress);
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -239,8 +195,8 @@ async function readContract(address: string, abi: BitcoinInterfaceAbi, method: s
 
 // ── Token ─────────────────────────────────────────────────────────────────────
 
-export async function getTokenBalance(token: string, user: string): Promise<bigint> {
-  return readContract(token, OP20_ABI, 'balanceOf', [user]);
+export async function getTokenBalance(token: string, userPubKey: Address): Promise<bigint> {
+  return readContract(token, OP20_ABI, 'balanceOf', [userPubKey]);
 }
 
 // ── Vault reads ───────────────────────────────────────────────────────────────

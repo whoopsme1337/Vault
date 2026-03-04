@@ -3,7 +3,7 @@ import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes, Bitcoi
 import { networks, Network } from '@btc-vision/bitcoin';
 import { Address } from '@btc-vision/transaction';
 
-const NETWORK: Network = networks.regtest;
+const NETWORK: Network = networks.testnet;
 
 const PILL    = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
 const MOTO    = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
@@ -22,8 +22,21 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 
 // ── Address helpers ───────────────────────────────────────────────────────────
 
+function hexToAddress(hexAddress: string): Address {
+  // Ensure 64 hex chars (32 bytes)
+  const hex = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
+  const padded = hex.padStart(64, '0');
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    bytes[i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
+  }
+  // Pass as ML-DSA key (32-byte path in setMldsaKey just stores directly)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new (Address as any)(bytes);
+}
+
 function toVaultAddress(hexAddress: string): Address {
-  return Address.fromString(hexAddress);
+  return hexToAddress(hexAddress);
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes, Bitcoi
 import { networks, Network } from '@btc-vision/bitcoin';
 import { Address } from '@btc-vision/transaction';
 
-const NETWORK: Network = networks.testnet;
+const NETWORK: Network = networks.regtest;
 
 const PILL    = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
 const MOTO    = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
@@ -72,19 +72,24 @@ let _cachedPubKeyAddress: Address | null = null;
 export async function getPublicKey(address: string): Promise<Address> {
   if (_cachedPubKeyAddress) return _cachedPubKeyAddress;
 
-  // Try wallet's own getPublicKey method first
+  // Extract public key from UTXO scriptPubKey hex (Taproot: 5120<32-byte-xonly-pubkey>)
   try {
     const wallet = getWalletProvider();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = await (wallet as any)?.getPublicKey?.(address);
-    if (raw && typeof raw === 'string' && raw.length > 0) {
-      const result = Address.fromString(raw);
-      _cachedPubKeyAddress = result;
-      return result;
+    const utxos: any[] = await (wallet as any)?.getBitcoinUtxos?.();
+    if (utxos?.length) {
+      const scriptHex: string = utxos[0].scriptPubKey?.hex ?? '';
+      // Taproot scriptPubKey = 5120 + 32 bytes x-only pubkey
+      if (scriptHex.startsWith('5120') && scriptHex.length >= 68) {
+        const pubkeyHex = '0x02' + scriptHex.slice(4, 68);
+        const result = Address.fromString(pubkeyHex);
+        _cachedPubKeyAddress = result;
+        return result;
+      }
     }
   } catch { /* fall through */ }
 
-  // Try provider RPC lookup
+  // Try provider RPC lookup as fallback
   try {
     const info = await getProvider().getPublicKeyInfo(address, false);
     if (info) {

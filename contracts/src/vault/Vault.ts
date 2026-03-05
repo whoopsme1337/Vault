@@ -16,8 +16,8 @@ import {
 } from '@btc-vision/btc-runtime/runtime';
 import { EMPTY_POINTER } from '@btc-vision/btc-runtime/runtime/math/bytes';
 
-const PILL_HEX: string = 'b09fc29c112af8293539477e23d8df1d3126639642767d707277131352040cbb';
-const MOTO_HEX: string = 'fd4473840751d58d9f8b73bdd57d6c5260453d5518bd7cd02d0a4cf3df9bf4dd';
+const PILL_HEX: string = '0xb09fc29c112af8293539477e23d8df1d3126639642767d707277131352040cbb';
+const MOTO_HEX: string = '0xfd4473840751d58d9f8b73bdd57d6c5260453d5518bd7cd02d0a4cf3df9bf4dd';
 
 const PTR_PILL_ASSETS:  u16 = 0;
 const PTR_PILL_SHARES:  u16 = 1;

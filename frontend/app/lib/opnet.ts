@@ -180,7 +180,6 @@ const OP20_ABI: BitcoinInterfaceAbi = [
   { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner',   type: ABIDataTypes.ADDRESS }],                                                         outputs: [{ name: 'balance',  type: ABIDataTypes.UINT256 }] },
   { name: 'approve',   type: BitcoinAbiTypes.Function, inputs: [{ name: 'spender', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [{ name: 'success',  type: ABIDataTypes.BOOL    }] },
 ];
-];
 
 // ── Read helper ───────────────────────────────────────────────────────────────
 

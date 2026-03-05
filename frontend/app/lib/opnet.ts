@@ -264,15 +264,20 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
   const encoded = await (c as any)[method](...params);
   const calldata: Buffer = Buffer.from(encoded?.calldata ?? encoded);
 
-  // Get UTXOs from wallet
+  // Get UTXOs and address from wallet
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const opnet = typeof window !== 'undefined' ? (window as any).opnet : null;
   const utxos = await opnet?.getBitcoinUtxos?.() ?? [];
+  const accounts = await opnet?.getAccounts?.() ?? [];
+  const from = accounts[0] ?? '';
+  console.log('[writeContract] from:', from, 'to:', toAddress, 'utxos:', utxos.length);
 
   const interactionParams = {
     to: toAddress,
     calldata,
     utxos,
+    from,
+    refundTo: from,
     feeRate: 10,
     priorityFee: 0n,
     gasSatFee: 0n,

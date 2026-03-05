@@ -179,7 +179,7 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
           <p className="font-mono text-[11px] text-[#00FFD1]">✓ TX Submitted</p>
           <p className="font-mono text-[10px] text-[rgba(0,255,209,0.6)] break-all mt-0.5">{txHash}</p>
           <a
-            href={`https://opscan.org/tx/${txHash}`}
+            href={`https://opscan.org/transactions/${txHash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="font-mono text-[10px] text-[#F7931A] hover:text-[#ffaa44] transition-colors mt-1 block"

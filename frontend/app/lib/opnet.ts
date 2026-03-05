@@ -279,7 +279,8 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
   };
 
   const results = await wallet.signAndBroadcastInteraction(interactionParams);
-  return results?.[0]?.result ?? results?.[1]?.result ?? '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (results?.[0] as any)?.result ?? (results?.[1] as any)?.result ?? (results?.[0] as any)?.txid ?? '';
 }
 
 // ── Vault writes ──────────────────────────────────────────────────────────────

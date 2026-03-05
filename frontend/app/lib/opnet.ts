@@ -177,8 +177,8 @@ const LENDING_ABI: BitcoinInterfaceAbi = [
 ];
 
 const OP20_ABI: BitcoinInterfaceAbi = [
-  { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner',   type: ABIDataTypes.ADDRESS }],                                                         outputs: [{ name: 'balance',  type: ABIDataTypes.UINT256 }] },
-  { name: 'approve',   type: BitcoinAbiTypes.Function, inputs: [{ name: 'spender', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [{ name: 'success',  type: ABIDataTypes.BOOL    }] },
+  { name: 'balanceOf',         type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner',   type: ABIDataTypes.ADDRESS }],                                                         outputs: [{ name: 'balance', type: ABIDataTypes.UINT256 }] },
+  { name: 'increaseAllowance', type: BitcoinAbiTypes.Function, inputs: [{ name: 'spender', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [] },
 ];
 
 // ── Read helper ───────────────────────────────────────────────────────────────
@@ -264,7 +264,7 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 
 async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
   const spenderAddr = hexToAddress(spender);
-  await writeContract(token, OP20_ABI, 'approve', [spenderAddr, amount], sender);
+  await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, amount], sender);
 }
 
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {

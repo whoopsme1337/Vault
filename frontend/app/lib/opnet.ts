@@ -265,6 +265,8 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
   const spenderAddr = hexToAddress(spender);
   await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, amount], sender);
+  // Wait for wallet to settle before sending next transaction
+  await new Promise(resolve => setTimeout(resolve, 3000));
 }
 
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {

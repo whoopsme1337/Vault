@@ -23,14 +23,16 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 // ── Address helpers ───────────────────────────────────────────────────────────
 
 function hexToAddress(hexAddress: string): Address {
-  // Ensure 64 hex chars (32 bytes)
+  // Remove 0x prefix, do NOT pad - contract toString() returns unpadded hex
   const hex = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
-  const padded = hex.padStart(64, '0');
+  // Parse hex into bytes (right-aligned if odd length)
+  const padded = hex.length % 2 === 1 ? '0' + hex : hex;
+  const byteLen = padded.length / 2;
   const bytes = new Uint8Array(32);
-  for (let i = 0; i < 32; i++) {
-    bytes[i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
+  const offset = 32 - byteLen;
+  for (let i = 0; i < byteLen; i++) {
+    bytes[offset + i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
   }
-  // Pass as ML-DSA key (32-byte path in setMldsaKey just stores directly)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new (Address as any)(bytes);
 }
@@ -175,7 +177,9 @@ const LENDING_ABI: BitcoinInterfaceAbi = [
 ];
 
 const OP20_ABI: BitcoinInterfaceAbi = [
-  { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner', type: ABIDataTypes.ADDRESS }], outputs: [{ name: 'balance', type: ABIDataTypes.UINT256 }] },
+  { name: 'balanceOf', type: BitcoinAbiTypes.Function, inputs: [{ name: 'owner',   type: ABIDataTypes.ADDRESS }],                                                         outputs: [{ name: 'balance',  type: ABIDataTypes.UINT256 }] },
+  { name: 'approve',   type: BitcoinAbiTypes.Function, inputs: [{ name: 'spender', type: ABIDataTypes.ADDRESS }, { name: 'amount', type: ABIDataTypes.UINT256 }], outputs: [{ name: 'success',  type: ABIDataTypes.BOOL    }] },
+];
 ];
 
 // ── Read helper ───────────────────────────────────────────────────────────────
@@ -259,7 +263,13 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 
 // ── Vault writes ──────────────────────────────────────────────────────────────
 
+async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
+  const spenderAddr = hexToAddress(spender);
+  await writeContract(token, OP20_ABI, 'approve', [spenderAddr, amount], sender);
+}
+
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {
+  await approveToken(token, VAULT, amount, sender);
   return writeContract(VAULT, VAULT_ABI, 'deposit', [toVaultAddress(token), amount], sender);
 }
 export async function vaultWithdraw(token: string, shares: bigint, sender: Address): Promise<string> {
@@ -269,11 +279,13 @@ export async function vaultWithdraw(token: string, shares: bigint, sender: Addre
 // ── Lending writes ────────────────────────────────────────────────────────────
 
 export async function lendingDepositCollateral(token: string, amount: bigint, sender: Address): Promise<string> {
+  await approveToken(token, LENDING, amount, sender);
   return writeContract(LENDING, LENDING_ABI, 'depositCollateral', [toVaultAddress(token), amount], sender);
 }
 export async function lendingBorrow(token: string, amount: bigint, sender: Address): Promise<string> {
   return writeContract(LENDING, LENDING_ABI, 'borrow', [toVaultAddress(token), amount], sender);
 }
 export async function lendingRepay(token: string, amount: bigint, sender: Address): Promise<string> {
+  await approveToken(token, LENDING, amount, sender);
   return writeContract(LENDING, LENDING_ABI, 'repay', [toVaultAddress(token), amount], sender);
 }

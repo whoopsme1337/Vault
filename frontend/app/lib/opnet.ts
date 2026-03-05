@@ -3,8 +3,8 @@ import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes, Bitcoi
 import { networks, Network } from '@btc-vision/bitcoin';
 import { Address } from '@btc-vision/transaction';
 
-const NETWORK: Network = networks.regtest;
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'http://localhost:9001';
+const NETWORK: Network = networks.testnet;
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'https://testnet.opnet.org';
 const PILL    = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
 const MOTO    = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
 const PILL_BTC = process.env.NEXT_PUBLIC_PILL_BTC_ADDRESS!;

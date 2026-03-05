@@ -16,6 +16,8 @@ export const TOKEN_ADDRESSES = { PILL, MOTO } as const;
 export const TOKEN_BTC_ADDRESSES: Record<string, string> = {
   [PILL]: PILL_BTC,
   [MOTO]: MOTO_BTC,
+  [VAULT]: process.env.NEXT_PUBLIC_VAULT_BTC_ADDRESS ?? VAULT,
+  [LENDING]: process.env.NEXT_PUBLIC_LENDING_BTC_ADDRESS ?? LENDING,
 };
 export type TokenSymbol = keyof typeof TOKEN_ADDRESSES;
 export const CONTRACT_ADDRESSES = { VAULT, LENDING };
@@ -185,7 +187,8 @@ const OP20_ABI: BitcoinInterfaceAbi = [
 
 async function readContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[]): Promise<bigint> {
   try {
-    const c = getContract(address, abi, getProvider(), NETWORK);
+    const toAddress = TOKEN_BTC_ADDRESSES[address] ?? address;
+    const c = getContract(toAddress, abi, getProvider(), NETWORK);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (c as any)[method](...params);
 
@@ -252,11 +255,13 @@ export async function getUserCollateral(userPubKey: Address, token: string): Pro
 async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[], sender?: Address): Promise<string> {
   const wallet = getWalletProvider();
   if (!wallet) throw new Error('OP Wallet not found');
-  const c = getContract(address, abi, getProvider(), NETWORK, sender);
+  // Resolve opt1 address for wallet interaction (wallet needs opt1/bc1 format)
+  const toAddress = TOKEN_BTC_ADDRESSES[address] ?? address;
+  const c = getContract(toAddress, abi, getProvider(), NETWORK, sender);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const encoded = await (c as any)[method](...params);
   const calldata: Uint8Array = encoded?.calldata ?? encoded;
-  const results = await wallet.signAndBroadcastInteraction({ to: address, calldata });
+  const results = await wallet.signAndBroadcastInteraction({ to: toAddress, calldata });
   return results?.[0]?.txid ?? '';
 }
 

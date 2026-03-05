@@ -58,7 +58,7 @@ function getProvider(): JSONRpcProvider {
 interface OPWalletProvider {
   requestAccounts: () => Promise<string[]>;
   getAccounts: () => Promise<string[]>;
-  signAndBroadcastInteraction: (args: { to: string; calldata: Uint8Array }) => Promise<{ txid: string }[]>;
+  signAndBroadcastInteraction: (args: Record<string, unknown>) => Promise<{ txid?: string; result?: string }[]>;
 }
 
 export function getWalletProvider(): OPWalletProvider | null {
@@ -272,8 +272,12 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
   const from = accounts[0] ?? '';
   console.log('[writeContract] from:', from, 'to:', toAddress, 'utxos:', utxos.length);
 
+  // contract must be 32-byte hex for InteractionTransaction
+  const contractHex = '0x' + (address.startsWith('0x') ? address.slice(2) : address).padStart(64, '0');
+
   const interactionParams = {
     to: toAddress,
+    contract: contractHex,
     calldata,
     utxos,
     from,
@@ -282,6 +286,14 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
     priorityFee: 0n,
     gasSatFee: 0n,
   };
+
+  console.log('[writeContract] interactionParams:', JSON.stringify({
+    to: interactionParams.to,
+    contract: interactionParams.contract,
+    from: interactionParams.from,
+    utxosLen: utxos.length,
+    calldataLen: calldata.length,
+  }));
 
   const results = await wallet.signAndBroadcastInteraction(interactionParams);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -255,14 +255,31 @@ export async function getUserCollateral(userPubKey: Address, token: string): Pro
 async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: string, params: unknown[], sender?: Address): Promise<string> {
   const wallet = getWalletProvider();
   if (!wallet) throw new Error('OP Wallet not found');
-  // Resolve opt1 address for wallet interaction (wallet needs opt1/bc1 format)
+
+  // Resolve opt1 address for wallet interaction
   const toAddress = TOKEN_BTC_ADDRESSES[address] ?? address;
   const c = getContract(toAddress, abi, getProvider(), NETWORK, sender);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const encoded = await (c as any)[method](...params);
-  const calldata: Uint8Array = encoded?.calldata ?? encoded;
-  const results = await wallet.signAndBroadcastInteraction({ to: toAddress, calldata });
-  return results?.[0]?.txid ?? '';
+  const calldata: Buffer = Buffer.from(encoded?.calldata ?? encoded);
+
+  // Get UTXOs from wallet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opnet = typeof window !== 'undefined' ? (window as any).opnet : null;
+  const utxos = await opnet?.getBitcoinUtxos?.() ?? [];
+
+  const interactionParams = {
+    to: toAddress,
+    calldata,
+    utxos,
+    feeRate: 10,
+    priorityFee: 0n,
+    gasSatFee: 0n,
+  };
+
+  const results = await wallet.signAndBroadcastInteraction(interactionParams);
+  return results?.[0]?.result ?? results?.[1]?.result ?? '';
 }
 
 // ── Vault writes ──────────────────────────────────────────────────────────────

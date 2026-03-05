@@ -200,6 +200,12 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
             ) : step !== 'idle' ? '✓ Approved' : `Step 1: Approve ${token}`}
           </button>
 
+          {step === 'approved' && (
+            <p className="font-mono text-[10px] text-[rgba(247,147,26,0.7)] text-center px-2">
+              ⏳ Wait ~30s for approval to confirm on-chain, then click Step 2
+            </p>
+          )}
+
           <button className="btn-primary w-full" onClick={handleDeposit} disabled={loading || step !== 'approved'} style={{ opacity: step !== 'approved' ? 0.4 : 1 }}>
             {loading && step === 'approved' ? (
               <span className="flex items-center justify-center gap-2">

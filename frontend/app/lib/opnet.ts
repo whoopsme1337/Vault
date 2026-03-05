@@ -3,8 +3,8 @@ import { JSONRpcProvider, getContract, BitcoinInterfaceAbi, ABIDataTypes, Bitcoi
 import { networks, Network } from '@btc-vision/bitcoin';
 import { Address } from '@btc-vision/transaction';
 
-const NETWORK: Network = networks.testnet;
-
+const NETWORK: Network = networks.regtest;
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? 'http://localhost:9001';
 const PILL    = process.env.NEXT_PUBLIC_PILL_ADDRESS!;
 const MOTO    = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
 const PILL_BTC = process.env.NEXT_PUBLIC_PILL_BTC_ADDRESS!;
@@ -48,7 +48,7 @@ function toVaultAddress(hexAddress: string): Address {
 let _provider: JSONRpcProvider | null = null;
 function getProvider(): JSONRpcProvider {
   if (!_provider) {
-    _provider = new JSONRpcProvider('https://testnet.opnet.org', NETWORK);
+    _provider = new JSONRpcProvider(RPC_URL, NETWORK);
   }
   return _provider;
 }
@@ -267,15 +267,15 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 
 // ── Vault writes ──────────────────────────────────────────────────────────────
 
-async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
+export const VAULT_ADDRESS = VAULT;
+export { VAULT };
+
+export async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
   const spenderAddr = hexToAddress(spender);
   await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, amount], sender);
-  // Wait for wallet to settle before sending next transaction
-  await new Promise(resolve => setTimeout(resolve, 3000));
 }
 
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {
-  await approveToken(token, VAULT, amount, sender);
   return writeContract(VAULT, VAULT_ABI, 'deposit', [toVaultAddress(token), amount], sender);
 }
 export async function vaultWithdraw(token: string, shares: bigint, sender: Address): Promise<string> {

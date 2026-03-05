@@ -307,7 +307,9 @@ export { VAULT };
 
 export async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
   const spenderAddr = hexToAddress(spender);
-  await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, amount], sender);
+  // Approve max amount to avoid re-approval issues
+  const maxAmount = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+  await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, maxAmount], sender);
 }
 
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {

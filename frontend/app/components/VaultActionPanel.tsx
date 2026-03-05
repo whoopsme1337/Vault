@@ -177,7 +177,6 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
       {txHash && (
         <div className="mb-4 px-3 py-2 rounded-lg bg-[rgba(0,255,209,0.06)] border border-[rgba(0,255,209,0.2)]">
           <p className="font-mono text-[11px] text-[#00FFD1]">✓ TX Submitted</p>
-          <p className="font-mono text-[10px] text-[rgba(0,255,209,0.6)] break-all mt-0.5">{txHash}</p>
           <a
             href={`https://opscan.org/transactions/${txHash}`}
             target="_blank"

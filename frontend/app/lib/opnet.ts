@@ -272,8 +272,17 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
   const from = accounts[0] ?? '';
   console.log('[writeContract] from:', from, 'to:', toAddress, 'utxos:', utxos.length);
 
-  // contract must be 32-byte hex for InteractionTransaction
-  const contractHex = '0x' + (address.startsWith('0x') ? address.slice(2) : address).padStart(64, '0');
+  // contract must be exactly 32 bytes - use saltHash (indexed by opt1 address)
+  // TOKEN_BTC_ADDRESSES maps hex→opt1, we need opt1→saltHash
+  // The saltHash is the same as the hex address stored in env vars for vault/lending
+  // For tokens, use their known 32-byte saltHash
+  const SALT_HASHES: Record<string, string> = {
+    [PILL]: '0x98b2e80d3a7d47c9e8f0b030c8266f4a4e9eb6eda71b2acc3521e82eeabf10b6',
+    [MOTO]: '0x09543b861a9a02e6c1c3337b9380df2ce5b62af3c7732406a5b969478b1889e4',
+    [VAULT]: process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? VAULT,
+    [LENDING]: process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? LENDING,
+  };
+  const contractHex = SALT_HASHES[address] ?? (address.startsWith('0x') ? address : '0x' + address);
 
   const interactionParams = {
     to: toAddress,
@@ -307,6 +316,7 @@ export { VAULT };
 
 export async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
   const spenderAddr = hexToAddress(spender);
+  console.log('[approveToken] token:', token, 'spender hex:', spender, 'spenderAddr.toString():', spenderAddr.toString?.());
   // Approve max amount to avoid re-approval issues
   const maxAmount = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
   await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, maxAmount], sender);

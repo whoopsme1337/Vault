@@ -46,7 +46,7 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
     try {
       const address = await getAddress();
       if (!address) throw new Error('Wallet not connected. Please connect first.');
-      const pubKey = await getPublicKey(address);
+      const pubKey: import('@btc-vision/transaction').Address = await getPublicKey(address);
 
       const tokenAddr = TOKEN_ADDRESSES[token];
       const rawAmount = parseAmount(amount, 8);
@@ -164,7 +164,7 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <span className="spinner !w-4 !h-4 !border-[#050810]/30 !border-t-[#050810]" />
-            Sending…
+            {mode === 'deposit' ? 'Step 1/2: Approving…' : 'Sending…'}
           </span>
         ) : (
           `${mode === 'deposit' ? 'Deposit' : 'Withdraw'} ${token}`

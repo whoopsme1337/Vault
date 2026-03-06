@@ -275,8 +275,8 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
   // The saltHash is the same as the hex address stored in env vars for vault/lending
   // For tokens, use their known 32-byte saltHash
   const SALT_HASHES: Record<string, string> = {
-    [PILL]: '0x98b2e80d3a7d47c9e8f0b030c8266f4a4e9eb6eda71b2acc3521e82eeabf10b6',
-    [MOTO]: '0x09543b861a9a02e6c1c3337b9380df2ce5b62af3c7732406a5b969478b1889e4',
+    [PILL]: '0xb09fc29c112af8293539477e23d8df1d3126639642767d707277131352040cbb',
+    [MOTO]: '0xfd4473840751d58d9f8b73bdd57d6c5260453d5518bd7cd02d0a4cf3df9bf4dd',
     [VAULT]: process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? VAULT,
     [LENDING]: process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? LENDING,
   };

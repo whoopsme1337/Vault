@@ -29,12 +29,13 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<Step>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [approveTxHash, setApproveTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const tokenInfo = tokens.find((t) => t.symbol === token);
   const maxForMode = mode === 'deposit' ? tokenInfo?.walletBalance : tokenInfo?.userShares;
 
-  const reset = () => { setStep('idle'); setError(null); setTxHash(null); };
+  const reset = () => { setStep('idle'); setError(null); setTxHash(null); setApproveTxHash(null); };
 
   const handleMax = () => {
     if (maxForMode && maxForMode !== '0') setAmount(maxForMode);
@@ -49,7 +50,8 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
       const pubKey = await getPublicKey(address);
       const tokenAddr = TOKEN_ADDRESSES[token];
       const rawAmount = parseAmount(amount, 8);
-      await approveToken(tokenAddr, VAULT, rawAmount, pubKey);
+      const approveHash = await approveToken(tokenAddr, VAULT, rawAmount, pubKey);
+      setApproveTxHash(approveHash || null);
       setStep('approved');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Approval failed');
@@ -177,6 +179,7 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
       {txHash && (
         <div className="mb-4 px-3 py-2 rounded-lg bg-[rgba(0,255,209,0.06)] border border-[rgba(0,255,209,0.2)]">
           <p className="font-mono text-[11px] text-[#00FFD1]">✓ TX Submitted</p>
+          <p className="font-mono text-[10px] text-[rgba(0,255,209,0.6)] break-all mt-0.5">{txHash}</p>
           <a
             href={`https://opscan.org/transactions/${txHash}`}
             target="_blank"
@@ -208,9 +211,21 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
           </button>
 
           {step === 'approved' && (
-            <p className="font-mono text-[10px] text-[rgba(247,147,26,0.7)] text-center px-2">
-              ⏳ Wait ~30s for approval to confirm on-chain, then click Step 2
-            </p>
+            <div className="px-3 py-2 rounded-lg bg-[rgba(247,147,26,0.06)] border border-[rgba(247,147,26,0.2)]">
+              <p className="font-mono text-[10px] text-[rgba(247,147,26,0.7)] text-center">
+                ⏳ Wait ~30s for approval to confirm on-chain, then click Step 2
+              </p>
+              {approveTxHash && (
+                <a
+                  href={`https://opscan.org/transactions/${approveTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-[10px] text-[#F7931A] hover:text-[#ffaa44] transition-colors mt-1 block text-center"
+                >
+                  View Approve TX on OPScan ↗
+                </a>
+              )}
+            </div>
           )}
 
           <button className="btn-primary w-full" onClick={handleDeposit} disabled={loading || step !== 'approved'} style={{ opacity: step !== 'approved' ? 0.4 : 1 }}>

@@ -26,13 +26,12 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 
 function hexToAddress(hexAddress: string): Address {
   const hex = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
-  // Ensure even length
   const padded = hex.length % 2 === 1 ? '0' + hex : hex;
-  // Take first 32 bytes max (left-aligned, truncate if > 32 bytes)
-  const take = Math.min(padded.length / 2, 32);
+  const byteLen = padded.length / 2;
   const bytes = new Uint8Array(32);
-  for (let i = 0; i < take; i++) {
-    bytes[i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
+  const offset = 32 - byteLen;
+  for (let i = 0; i < byteLen && i < 32; i++) {
+    bytes[offset + i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new (Address as any)(bytes);
@@ -313,12 +312,12 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
 export const VAULT_ADDRESS = VAULT;
 export { VAULT };
 
-export async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<void> {
+export async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<string> {
   const spenderAddr = hexToAddress(spender);
   console.log('[approveToken] token:', token, 'spender hex:', spender, 'spenderAddr.toString():', spenderAddr.toString?.());
   // Approve max amount to avoid re-approval issues
   const maxAmount = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
-  await writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, maxAmount], sender);
+  return writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, maxAmount], sender);
 }
 
 export async function vaultDeposit(token: string, amount: bigint, sender: Address): Promise<string> {

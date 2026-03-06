@@ -213,7 +213,7 @@ export default function VaultActionPanel({ tokens = [], onSuccess }: Props) {
           {step === 'approved' && (
             <div className="px-3 py-2 rounded-lg bg-[rgba(247,147,26,0.06)] border border-[rgba(247,147,26,0.2)]">
               <p className="font-mono text-[10px] text-[rgba(247,147,26,0.7)] text-center">
-                ⏳ Wait ~30s for approval to confirm on-chain, then click Step 2
+                ⏳ Wait for approval to confirm on-chain
               </p>
               {approveTxHash && (
                 <a

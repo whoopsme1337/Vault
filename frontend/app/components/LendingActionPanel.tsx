@@ -5,16 +5,11 @@ import {
   lendingDepositCollateral,
   lendingBorrow,
   lendingRepay,
-  approveToken,
   TOKEN_ADDRESSES,
-  LENDING,
   parseAmount,
-  getAddress,
-  getPublicKey,
 } from '../lib/opnet';
 
 type LendMode = 'collateral' | 'borrow' | 'repay';
-type Step = 'idle' | 'approved' | 'done';
 type TokenSymbol = keyof typeof TOKEN_ADDRESSES;
 
 interface Props {
@@ -32,67 +27,28 @@ export default function LendingActionPanel({ onSuccess }: Props) {
   const [token, setToken] = useState<TokenSymbol>('PILL');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<Step>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [approveTxHash, setApproveTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const needsApprove = mode === 'collateral' || mode === 'repay';
-
-  const reset = () => { setStep('idle'); setError(null); setTxHash(null); setApproveTxHash(null); };
-
-  const handleApprove = useCallback(async () => {
-    if (!amount || parseFloat(amount) <= 0) { setError('Enter a valid amount'); return; }
-    setLoading(true); setError(null);
-    try {
-      const address = await getAddress();
-      if (!address) throw new Error('Wallet not connected.');
-      const pubKey = await getPublicKey(address);
-      const tokenAddr = TOKEN_ADDRESSES[token];
-      const rawAmount = parseAmount(amount, 8);
-      const hash = await approveToken(tokenAddr, LENDING, rawAmount, pubKey);
-      setApproveTxHash(hash || null);
-      setStep('approved');
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Approval failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, amount]);
-
   const handleSubmit = useCallback(async () => {
-    if (!amount || parseFloat(amount) <= 0) { setError('Enter a valid amount'); return; }
-    setLoading(true); setError(null); setTxHash(null);
+    if (!amount || parseFloat(amount) <= 0) {
+      setError('Enter a valid amount');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setTxHash(null);
     try {
-      const address = await getAddress();
-      if (!address) throw new Error('Wallet not connected. Please connect first.');
-      const pubKey: import('@btc-vision/transaction').Address = await getPublicKey(address);
       const tokenAddr = TOKEN_ADDRESSES[token];
       const rawAmount = parseAmount(amount, 8);
 
-      let hash = '';
-      if (mode === 'collateral') hash = await lendingDepositCollateral(tokenAddr, rawAmount, pubKey);
-      else if (mode === 'borrow') hash = await lendingBorrow(tokenAddr, rawAmount, pubKey);
-      else hash = await lendingRepay(tokenAddr, rawAmount, pubKey);
-
-      setTxHash(hash);
-      setAmount('');
-      setStep('done');
-      onSuccess?.();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Transaction failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [mode, token, amount, onSuccess]);
-
-      let hash: string = '';
+      let hash: string;
       if (mode === 'collateral') {
-        hash = await lendingDepositCollateral(tokenAddr, rawAmount, pubKey);
+        hash = await lendingDepositCollateral(tokenAddr, rawAmount);
       } else if (mode === 'borrow') {
-        hash = await lendingBorrow(tokenAddr, rawAmount, pubKey);
+        hash = await lendingBorrow(tokenAddr, rawAmount);
       } else {
-        hash = await lendingRepay(tokenAddr, rawAmount, pubKey);
+        hash = await lendingRepay(tokenAddr, rawAmount);
       }
       setTxHash(hash);
       setAmount('');
@@ -122,7 +78,7 @@ export default function LendingActionPanel({ onSuccess }: Props) {
         {(Object.keys(MODE_LABELS) as LendMode[]).map((m) => (
           <button
             key={m}
-            onClick={() => { setMode(m); reset(); }}
+            onClick={() => { setMode(m); setError(null); setTxHash(null); }}
             className={`flex-1 btn-secondary text-[11px] !py-2 ${mode === m ? 'tab-active' : ''}`}
           >
             {MODE_LABELS[m]}
@@ -194,62 +150,30 @@ export default function LendingActionPanel({ onSuccess }: Props) {
         <div className="mb-4 px-3 py-2 rounded-lg bg-[rgba(0,255,209,0.06)] border border-[rgba(0,255,209,0.2)]">
           <p className="font-mono text-[11px] text-[#00FFD1]">✓ TX Submitted</p>
           <p className="font-mono text-[10px] text-[rgba(0,255,209,0.6)] break-all mt-0.5">{txHash}</p>
-          <a href={`https://opscan.org/transactions/${txHash}`} target="_blank" rel="noopener noreferrer"
+          <a
+            href={`https://opscan.org/transactions/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-mono text-[10px] text-[#F7931A] hover:text-[#ffaa44] transition-colors mt-1 block">
             View on OPScan ↗
           </a>
         </div>
       )}
 
-      {needsApprove ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`w-5 h-5 rounded-full text-[10px] font-mono font-bold flex items-center justify-center border ${step !== 'idle' ? 'border-[rgba(0,255,209,0.6)] text-[#00FFD1] bg-[rgba(0,255,209,0.1)]' : 'border-[#F7931A] text-[#F7931A]'}`}>1</span>
-            <span className="font-mono text-[11px] text-[rgba(255,255,255,0.4)]">Approve {token} spend</span>
-            <span className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
-            <span className={`w-5 h-5 rounded-full text-[10px] font-mono font-bold flex items-center justify-center border ${step === 'approved' ? 'border-[#F7931A] text-[#F7931A]' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.2)]'}`}>2</span>
-            <span className="font-mono text-[11px] text-[rgba(255,255,255,0.4)]">{MODE_LABELS[mode]}</span>
-          </div>
-
-          <button className="btn-primary w-full" onClick={handleApprove} disabled={loading || step !== 'idle'}>
-            {loading && step === 'idle' ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="spinner !w-4 !h-4 !border-[#050810]/30 !border-t-[#050810]" />Approving…
-              </span>
-            ) : step !== 'idle' ? '✓ Approved' : `Step 1: Approve ${token}`}
-          </button>
-
-          {step === 'approved' && (
-            <div className="px-3 py-2 rounded-lg bg-[rgba(247,147,26,0.06)] border border-[rgba(247,147,26,0.2)]">
-              <p className="font-mono text-[10px] text-[rgba(247,147,26,0.7)] text-center">
-                ⏳ Wait ~30s for approval to confirm, then click Step 2
-              </p>
-              {approveTxHash && (
-                <a href={`https://opscan.org/transactions/${approveTxHash}`} target="_blank" rel="noopener noreferrer"
-                  className="font-mono text-[10px] text-[#F7931A] hover:text-[#ffaa44] transition-colors mt-1 block text-center">
-                  View Approve TX on OPScan ↗
-                </a>
-              )}
-            </div>
-          )}
-
-          <button className="btn-primary w-full" onClick={handleSubmit} disabled={loading || step !== 'approved'} style={{ opacity: step !== 'approved' ? 0.4 : 1 }}>
-            {loading && step === 'approved' ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="spinner !w-4 !h-4 !border-[#050810]/30 !border-t-[#050810]" />Sending…
-              </span>
-            ) : `Step 2: ${MODE_LABELS[mode]} ${token}`}
-          </button>
-        </div>
-      ) : (
-        <button className="btn-primary w-full" onClick={handleSubmit} disabled={loading}>
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="spinner !w-4 !h-4 !border-[#050810]/30 !border-t-[#050810]" />Sending…
-            </span>
-          ) : `${MODE_LABELS[mode]} ${token}`}
-        </button>
-      )}
+      <button
+        className="btn-primary w-full"
+        onClick={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="spinner !w-4 !h-4 !border-[#050810]/30 !border-t-[#050810]" />
+            Sending…
+          </span>
+        ) : (
+          `${MODE_LABELS[mode]} ${token}`
+        )}
+      </button>
     </div>
   );
 }

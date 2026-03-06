@@ -270,17 +270,8 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
   const from = accounts[0] ?? '';
   console.log('[writeContract] from:', from, 'to:', toAddress, 'utxos:', utxos.length);
 
-  // contract must be exactly 32 bytes - use saltHash (indexed by opt1 address)
-  // TOKEN_BTC_ADDRESSES maps hex→opt1, we need opt1→saltHash
-  // The saltHash is the same as the hex address stored in env vars for vault/lending
-  // For tokens, use their known 32-byte saltHash
-  const SALT_HASHES: Record<string, string> = {
-    [PILL]: '0xb09fc29c112af8293539477e23d8df1d3126639642767d707277131352040cbb',
-    [MOTO]: '0xfd4473840751d58d9f8b73bdd57d6c5260453d5518bd7cd02d0a4cf3df9bf4dd',
-    [VAULT]: process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? VAULT,
-    [LENDING]: process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? LENDING,
-  };
-  const contractHex = SALT_HASHES[address] ?? (address.startsWith('0x') ? address : '0x' + address);
+  // contract field = the hex address (32 bytes) used by InteractionTransaction
+  const contractHex = address.startsWith('0x') ? address : '0x' + address;
 
   const interactionParams = {
     to: toAddress,

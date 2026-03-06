@@ -25,15 +25,14 @@ export const CONTRACT_ADDRESSES = { VAULT, LENDING };
 // ── Address helpers ───────────────────────────────────────────────────────────
 
 function hexToAddress(hexAddress: string): Address {
-  // Remove 0x prefix, do NOT pad - contract toString() returns unpadded hex
   const hex = hexAddress.startsWith('0x') ? hexAddress.slice(2) : hexAddress;
-  // Parse hex into bytes (right-aligned if odd length)
+  // Ensure even length
   const padded = hex.length % 2 === 1 ? '0' + hex : hex;
-  const byteLen = padded.length / 2;
+  // Take first 32 bytes max (left-aligned, truncate if > 32 bytes)
+  const take = Math.min(padded.length / 2, 32);
   const bytes = new Uint8Array(32);
-  const offset = 32 - byteLen;
-  for (let i = 0; i < byteLen; i++) {
-    bytes[offset + i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
+  for (let i = 0; i < take; i++) {
+    bytes[i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new (Address as any)(bytes);
@@ -292,8 +291,8 @@ async function writeContract(address: string, abi: BitcoinInterfaceAbi, method: 
     from,
     refundTo: from,
     feeRate: 10,
-    priorityFee: 0n,
-    gasSatFee: 0n,
+    priorityFee: 10000n,
+    gasSatFee: 10000n,
   };
 
   console.log('[writeContract] interactionParams:', JSON.stringify({

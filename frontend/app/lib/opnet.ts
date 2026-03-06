@@ -12,6 +12,10 @@ const MOTO_BTC = process.env.NEXT_PUBLIC_MOTO_BTC_ADDRESS!;
 const VAULT   = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? '';
 export const LENDING = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? '';
 
+// Real Blockchain.contractAddress values used at WASM runtime (for increaseAllowance spender)
+const VAULT_RUNTIME_ADDR   = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? '0x2bde0671f5fd7310807c96467366f5f90fa8064276e904213913a48668ac4195';
+const LENDING_RUNTIME_ADDR = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? LENDING;
+
 export const TOKEN_ADDRESSES = { PILL, MOTO } as const;
 export const TOKEN_BTC_ADDRESSES: Record<string, string> = {
   [PILL]: PILL_BTC,
@@ -304,8 +308,10 @@ export const VAULT_ADDRESS = VAULT;
 export { VAULT };
 
 export async function approveToken(token: string, spender: string, amount: bigint, sender: Address): Promise<string> {
-  const spenderAddr = hexToAddress(spender);
-  console.log('[approveToken] token:', token, 'spender hex:', spender, 'spenderAddr.toString():', spenderAddr.toString?.());
+  // Use the real Blockchain.contractAddress values (from debug revert)
+  const resolvedSpender = spender === VAULT ? VAULT_RUNTIME_ADDR : spender === LENDING ? LENDING_RUNTIME_ADDR || spender : spender;
+  const spenderAddr = hexToAddress(resolvedSpender);
+  console.log('[approveToken] token:', token, 'spender hex:', resolvedSpender, 'spenderAddr.toString():', spenderAddr.toString?.());
   // Approve max amount to avoid re-approval issues
   const maxAmount = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
   return writeContract(token, OP20_ABI, 'increaseAllowance', [spenderAddr, maxAmount], sender);

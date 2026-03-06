@@ -10,7 +10,7 @@ const MOTO    = process.env.NEXT_PUBLIC_MOTO_ADDRESS!;
 const PILL_BTC = process.env.NEXT_PUBLIC_PILL_BTC_ADDRESS!;
 const MOTO_BTC = process.env.NEXT_PUBLIC_MOTO_BTC_ADDRESS!;
 const VAULT   = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? '';
-const LENDING = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? '';
+export const LENDING = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? '';
 
 export const TOKEN_ADDRESSES = { PILL, MOTO } as const;
 export const TOKEN_BTC_ADDRESSES: Record<string, string> = {

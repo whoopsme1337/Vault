@@ -44,11 +44,11 @@ export default function LendingActionPanel({ onSuccess }: Props) {
 
       let hash: string;
       if (mode === 'collateral') {
-        hash = await lendingDepositCollateral(tokenAddr, rawAmount, pubKey);
+        hash = await lendingDepositCollateral(tokenAddr, rawAmount);
       } else if (mode === 'borrow') {
-        hash = await lendingBorrow(tokenAddr, rawAmount, pubKey);
+        hash = await lendingBorrow(tokenAddr, rawAmount);
       } else {
-        hash = await lendingRepay(tokenAddr, rawAmount, pubKey);
+        hash = await lendingRepay(tokenAddr, rawAmount);
       }
       setTxHash(hash);
       setAmount('');

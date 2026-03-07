@@ -13,7 +13,7 @@ const VAULT   = process.env.NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS ?? '';
 export const LENDING = process.env.NEXT_PUBLIC_LENDING_CONTRACT_ADDRESS ?? '';
 
 // Real Blockchain.contractAddress values used at WASM runtime (for increaseAllowance spender)
-const VAULT_RUNTIME_ADDR   = '0xe5202804ebaa6e68a69163b294485e980974db70d2dd45ceed81ad6ca34ceb9d';
+const VAULT_RUNTIME_ADDR   = '0x52b6c1f730722b2adca91649c5f5362f9f513dfda2fc069156f3b8e3af62b97f';
 const LENDING_RUNTIME_ADDR = '0xb0caabde6a8c056599a8c4a75ffc8aecd1d1687a645bae555731d8e7ec61789d';
 
 export const TOKEN_ADDRESSES = { PILL, MOTO } as const;

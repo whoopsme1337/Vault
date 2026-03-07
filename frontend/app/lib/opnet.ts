@@ -114,10 +114,21 @@ export async function getPublicKey(address: string): Promise<Address> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const opnet = typeof window !== 'undefined' ? (window as any).opnet : null;
+
+    // Try to get pubkey directly from extension
+    const pubKeyHex: string = await opnet?.getPublicKey?.();
+    if (pubKeyHex) {
+      const addr = setCachedPublicKey(pubKeyHex);
+      _cachedPubKey = addr;
+      return addr;
+    }
+
+    // Fallback: derive from UTXOs scriptPubKey
     const utxos: any[] = await opnet?.getBitcoinUtxos?.();
     if (utxos?.length) {
       for (const utxo of utxos) {
         const scriptHex: string = utxo.scriptPubKey?.hex ?? '';
+        console.log('[getPublicKey] scriptHex:', scriptHex);
         const addr = pubkeyFromScriptHex(scriptHex);
         if (addr) {
           _cachedPubKey = addr;
